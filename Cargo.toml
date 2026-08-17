@@ -2,3 +2,6 @@
 name = "rag_in_rust"
 version = "0.1.0"
 edition = "2024"
+
+[dependencies]
+epub = "2.1.5"
