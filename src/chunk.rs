@@ -30,35 +30,34 @@ pub fn chunk_text(text: &str, chunk_size: usize, overlap: usize) -> Vec<Chunk> {
     let step = chunk_size - overlap;
 
     if chars.len() < chunk_size {
-        // TODO: return the first chunk with the index 0
-        todo!();
+        // TODO: Add a informational text, for the user, that there were no more than one chunk.
+        let out: Vec<Chunk> = vec![Chunk {
+            index: 0,
+            content: chars.iter().collect(),
+        }];
+        return out;
     }
 
-    // TODO: Create a test for when size is 0.
-    let chunks: Vec<_> =
-        chars
-            .windows(chunk_size)
-            .step_by(step)
-            .enumerate()
-            .map(|(index, content)| Chunk {
-                index,
-                content: content.trim().collect(),
-            });
+    let chunks: Vec<Chunk> = chars
+        .windows(chunk_size)
+        .step_by(step)
+        .enumerate()
+        .map(|(index, content)| Chunk {
+            index,
+            content: content.iter().collect(),
+        })
+        .collect();
+    // handle the case when there is still text left after the chunking is done
+    // We will push the leftover text into the last chunk instead of creating a new one.
 
-    let mut output: Vec<Chunk> = Vec::new();
-    // for (index, content) in chunks.enumerate().collect() {
-    //     output.push(Chunk { index, content });
-    // }
-    output
-    // Suppose text len = 100
-    // chunk size = 50
-    // overlap = 25
-    // What if the text size is smaller than the chunk size?
-    //
+    chunks
 }
 
 #[cfg(test)]
 mod tests {
+
+    use super::*;
+
     #[test]
     fn test_out_chars() {
         let text = "hello";
@@ -73,4 +72,18 @@ mod tests {
 
         println!("{:?}", windows);
     }
+
+    // Suppose text len = 100
+    // chunk size = 50
+    // overlap = 25
+
+    #[test]
+    fn get_those_thick_chunks_ma_boy() {
+        let text: &str = "this is a amazing and big text";
+
+        let chunks: Vec<Chunk> = chunk_text(text, 5, 2);
+
+        println!("{:?}", chunks);
+    }
+    // TODO: Create a test for when size is 0.
 }
