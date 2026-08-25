@@ -42,9 +42,16 @@ pub fn chunk_text(text: &str, chunk_size: usize, overlap: usize) -> Vec<Chunk> {
         .windows(chunk_size)
         .step_by(step)
         .enumerate()
-        .map(|(index, content)| Chunk {
-            index,
-            content: content.iter().collect(),
+        .map(|(index, content)| {
+            let content: String = content.iter().collect();
+            let trimmed = content.trim();
+            // Handle if trimmed is empty
+            (!trimmed.is_empty())
+                .then(|| Chunk {
+                    index,
+                    content: trimmed.to_string(),
+                })
+                .unwrap()
         })
         .collect();
     // handle the case when there is still text left after the chunking is done
