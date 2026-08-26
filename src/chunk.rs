@@ -38,7 +38,7 @@ pub fn chunk_text(text: &str, chunk_size: usize, overlap: usize) -> Vec<Chunk> {
         return out;
     }
 
-    let chunks: Vec<Chunk> = chars
+    let mut chunks: Vec<Chunk> = chars
         .windows(chunk_size)
         .step_by(step)
         .enumerate()
@@ -54,8 +54,23 @@ pub fn chunk_text(text: &str, chunk_size: usize, overlap: usize) -> Vec<Chunk> {
                 .unwrap()
         })
         .collect();
+
     // handle the case when there is still text left after the chunking is done
     // We will push the leftover text into the last chunk instead of creating a new one.
+    //
+    // Note: I have no clue how this works, but it took a lot of time to figure it out.
+    if !chunk_size.is_multiple_of(overlap) || !text.len().is_multiple_of(chunk_size) {
+        let chunks_without_overlap = text.len() / chunk_size;
+        let total_with_overlap = chunks_without_overlap * overlap;
+        let the_last_bit = (text.len() + total_with_overlap) % chunk_size;
+        if the_last_bit != 0 {
+            let last = &text[text.len() - the_last_bit..text.len()];
+            dbg!(last);
+            if let Some(data) = chunks.last_mut() {
+                data.content.push_str(last);
+            }
+        }
+    }
 
     chunks
 }
@@ -84,11 +99,22 @@ mod tests {
     // chunk size = 50
     // overlap = 25
 
-    #[test]
-    fn get_those_thick_chunks_ma_boy() {
-        let text: &str = "this is a amazing and big text";
+    // #[test]
+    // fn get_those_thick_chunks_ma_boy() {
+    //     let text: &str = "this is a amazing and big text";
+    //
+    //     println!("length of text is: {}", text.len());
+    //
+    //     let chunks: Vec<Chunk> = chunk_text(text, 5, 2);
+    // }
 
-        let chunks: Vec<Chunk> = chunk_text(text, 5, 2);
+    #[test]
+    fn exactly_100_char() {
+        let text: &str = r#"Zenvora qeltrins murvekrix vexta grunelvash zorp keldrima farnoku trelix quambelor dravencost"#;
+
+        println!("length of text is: {}", text.len());
+
+        let chunks: Vec<Chunk> = chunk_text(text, 40, 29);
 
         println!("{:?}", chunks);
     }
