@@ -1,6 +1,8 @@
 mod chunk;
-use epub::doc::EpubDoc;
+mod parse;
 
 fn main() {
-    let doc = EpubDoc::new("corpus/The_Silent_Patient.epub");
+    let the_silent_patient = parse::Novel::open("corpus/The_Silent_Patient.epub");
+
+    dbg!(the_silent_patient);
 }

@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+astral-tl = "0.7.11"
 epub = "2.1.5"
