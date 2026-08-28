@@ -38,13 +38,21 @@ impl Novel {
 //     chapter_content: String,
 // }
 
-pub fn extract_from_epub(mut doc: EpubDoc<BufReader<File>>) {
+pub fn extract_from_epub(mut doc: EpubDoc<BufReader<File>>) -> Vec<String> {
     // Loop over every chapter and send them to `extract_text()`
-    doc.set_current_chapter(50);
-    if let Some((content, _)) = doc.get_current_str() {
+
+    let mut novel_content = Vec::new();
+
+    while let Some((content, _)) = doc.get_current_str() {
         let chapter_text = extract_text(content);
-        dbg!(chapter_text);
-    };
+        novel_content.push(chapter_text);
+        // doc.go_next() returns bool.
+        if !doc.go_next() {
+            break;
+        }
+    }
+
+    novel_content.into_iter().flatten().collect()
 }
 
 fn extract_text(raw_html: String) -> Vec<String> {
