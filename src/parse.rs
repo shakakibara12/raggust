@@ -42,22 +42,31 @@ pub fn extract_from_epub(mut doc: EpubDoc<BufReader<File>>) {
     // Loop over every chapter and send them to `extract_text()`
     doc.set_current_chapter(50);
     if let Some((content, _)) = doc.get_current_str() {
-        extract_text(content);
+        let chapter_text = extract_text(content);
+        dbg!(chapter_text);
     };
 }
 
-fn extract_text(raw_html: String) -> Option<String> {
+fn extract_text(raw_html: String) -> Vec<String> {
     let dom = parse(raw_html.as_ref(), tl::ParserOptions::default()).unwrap();
 
+    // Get all the tags we actually want.
+    let tags = ["title", "p.co", "p.text-standard-tx"];
+
+    let mut extracted: Vec<_> = Vec::new();
+
     // That's a lotta shit to just get the raw text outta the html.
-    let title = dom.query_selector("p.text-standard-tx").unwrap();
-    let node = title.map(|node| node.get(dom.parser()).unwrap());
-    for raw_text in node {
-        let inner_text = raw_text.inner_text(dom.parser());
-        println!("{:?}", &*inner_text);
+    for tag in tags {
+        let title = dom.query_selector(tag).unwrap();
+        let node = title.map(|node| node.get(dom.parser()).unwrap());
+        for raw_text in node {
+            // We do &* to get the `str` value from the `Cow<'_, str>`
+            let inner_text = &*raw_text.inner_text(dom.parser());
+            extracted.push(inner_text.parse::<String>().unwrap());
+        }
     }
-    // Some(String::from(&*inner_text))
-    Some("return shit".to_string())
+
+    extracted
 }
 
 #[cfg(test)]
