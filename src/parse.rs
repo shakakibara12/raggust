@@ -68,12 +68,3 @@ fn extract_text(raw_html: String) -> Vec<String> {
 
     extracted
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // #[test]
-    // fn extract_data() {
-    // }
-}

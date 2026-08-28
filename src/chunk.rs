@@ -116,18 +116,4 @@ mod tests {
             assert_eq!(a.content, b.content);
         }
     }
-
-    // #[test]
-    // fn exactly_100_char() {
-    //     let text: &str = "Zenvora qeltrins murvek plandorix \
-    //         vexta grunelvash zorp keldrima farnoku \
-    //         trelix quambelor draven";
-    //
-    //     // let length = text.len();
-    //     let chunk_size = 30;
-    //     let overlap = 20;
-    //     let chunks: Vec<Chunk> = chunk_text(text, chunk_size, overlap);
-    //
-    //     dbg!(chunks);
-    // }
 }
