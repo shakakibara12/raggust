@@ -1,4 +1,5 @@
 use epub::doc::EpubDoc;
+use std::fmt;
 use std::fs::File;
 use std::io::BufReader;
 use tl::parse;
@@ -33,10 +34,12 @@ impl Novel {
     }
 }
 
-// struct chapter {
-//     chapter_title: String,
-//     chapter_content: String,
-// }
+impl fmt::Display for Novel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // TODO: Add a beautiful Box.
+        write!(f, "Title: {}\nAuthor: {}", self.title, self.author)
+    }
+}
 
 pub fn extract_from_epub(mut doc: EpubDoc<BufReader<File>>) -> Vec<String> {
     // Loop over every chapter and send them to `extract_text()`
