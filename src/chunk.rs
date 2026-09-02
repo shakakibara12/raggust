@@ -2,8 +2,8 @@
 
 #[derive(Debug)]
 pub struct Chunk {
-    pub index: usize,
-    pub content: String,
+    index: usize,
+    content: String,
 }
 
 /// Using fixed-length overlapping chunking
