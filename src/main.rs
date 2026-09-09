@@ -42,10 +42,8 @@ async fn main() -> Result<(), E> {
     //     .into_iter()
     //     .reduce(|acc, x| acc + x);
 
-    let _chunks = chunk::chunk_text(novel_content.as_ref(), 200, 50);
+    let chunks = chunk::chunk_text(novel_content.as_ref(), 200, 50);
     // TODO: Then embed
-    // let embeddings = embed::create_embedding(chunks);
-    // dbg!(embeddings);
-    embed::create_embedding().await?;
+    embed::create_embedding(chunks).await?;
     Ok(())
 }
