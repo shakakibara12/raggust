@@ -43,7 +43,9 @@ async fn main() -> Result<(), E> {
     //     .reduce(|acc, x| acc + x);
 
     let chunks = chunk::chunk_text(&novel_content, 200, 50);
-    // TODO: Then embed
-    embed::create_embedding(chunks).await?;
+    // TODO: Proper embedding of each and every vector of chunks.
+    // for now we are accessing the first one.
+    let vector_embed = embed::create_embedding(&chunks.first().unwrap().content).await?;
+    dbg!(vector_embed);
     Ok(())
 }
