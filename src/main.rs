@@ -36,13 +36,13 @@ async fn main() -> Result<(), E> {
 
     // TODO: implement with iterators.
     for content in parse::extract_from_epub(novel) {
-        novel_content += &content;
+        novel_content.push_str(&content);
     }
     // let novel_contents = parse::extract_from_epub(novel)
     //     .into_iter()
     //     .reduce(|acc, x| acc + x);
 
-    let chunks = chunk::chunk_text(novel_content.as_ref(), 200, 50);
+    let chunks = chunk::chunk_text(&novel_content, 200, 50);
     // TODO: Then embed
     embed::create_embedding(chunks).await?;
     Ok(())
