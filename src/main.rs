@@ -1,4 +1,5 @@
 mod chunk;
+mod db;
 mod embed;
 mod parse;
 use epub::doc::EpubDoc;
