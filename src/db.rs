@@ -89,11 +89,3 @@ pub async fn find_document_by_id(
         None => Ok(None),
     }
 }
-
-pub async fn delete_document(conn: &Connection, doc_id: i64) -> Result<(), Error> {
-    conn.execute("DELETE FROM chunks WHERE id = ?1", params![doc_id])
-        .await?;
-    conn.execute("DELETE FROM chunks WHERE document_id = ?1", params![doc_id])
-        .await?;
-    Ok(())
-}
