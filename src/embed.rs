@@ -6,7 +6,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use std::error;
 
-const MODEL_NAME: &str = "nomic-embed-text";
+const EMBED_MODEL_NAME: &str = "nomic-embed-text";
 
 // TODO: Look into implementing a custom error type that wraps both the reqwest error type and the
 // serde error type.
@@ -26,7 +26,7 @@ pub async fn create_embedding(content: &str) -> Result<Vec<f32>, Box<dyn error::
     let response = client
         .post("http://localhost:11434/api/embeddings")
         .json(&serde_json::json!({
-            "model": MODEL_NAME,
+            "model": EMBED_MODEL_NAME,
             "prompt": content
         }))
         .send()

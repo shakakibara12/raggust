@@ -5,54 +5,25 @@ pub async fn init_db() -> Result<Connection, Error> {
     let db = Builder::new_local(":memory:").build().await?;
     let conn = db.connect()?;
     conn.execute_batch(
-        "CREATE TABLE IF NOT EXISTS documents (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            source_path TEXT NOT NULL,
-            mtime INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL DEFAULT (datetime('now'))
-        );
-
+        "
         CREATE TABLE IF NOT EXISTS chunks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            document_id INTEGER NOT NULL REFERENCES documents(id),
             chunk_index INTEGER NOT NULL,
             content TEXT NOT NULL,
             embedding F32_BLOB(768)
         );
 
         CREATE INDEX IF NOT EXISTS idx_chunks_embedding
-            ON chunks(libsql_vector_idx(embedding, 'metric=cosine'));",
+            ON chunks(libsql_vector_idx(embedding, 'metric=cosine'));
+        ",
     )
     .await?;
 
     Ok(conn)
 }
 
-pub async fn insert_document(
-    conn: &Connection,
-    source_path: &str,
-    mtime: i64,
-) -> Result<i64, Error> {
-    conn.execute(
-        "INSERT INTO documents (source_path, mtime) VALUES (?1, ?2)",
-        params![source_path, mtime],
-    )
-    .await?;
-
-    let mut rows = conn.query("SELECT last_insert_rowid()", params![]).await?;
-    match rows.next().await? {
-        Some(row) => {
-            let id = row.get::<i64>(0)?;
-            Ok(id)
-        }
-        // TODO: To panic or to no panic?
-        None => Err(Error::QueryReturnedNoRows),
-    }
-}
-
 pub async fn insert_chunk(
     conn: &Connection,
-    document_id: i64,
     chunk_index: usize,
     content: &str,
     embedding: &[f32],
@@ -61,32 +32,12 @@ pub async fn insert_chunk(
     let embedding_json = serde_json::to_string(embedding)
         .unwrap_or_else(|error| panic!("Unable to serialize embedding with error: {error:?}"));
     conn.execute(
-        "INSERT INTO chunks (document_id, chunk_index, content, embedding) VALUES (?1, ?2, ?3, vector32(?4))",
-        params![document_id, i64::try_from(chunk_index).unwrap(), content, embedding_json],
-    ).await?;
+        "INSERT INTO chunks (chunk_index, content, embedding) VALUES (?1, ?2, ?3, vector32(?4))",
+        params![i64::try_from(chunk_index).unwrap(), content, embedding_json],
+    )
+    .await?;
 
     Ok(())
-}
-
-pub async fn find_document_by_id(
-    conn: &Connection,
-    source_path: &str,
-) -> Result<Option<(i64, i64)>, Error> {
-    let mut rows = conn
-        .query(
-            "SELECT id, mtime FROM documents WHERE source_path = ?1",
-            params![source_path],
-        )
-        .await?;
-
-    match rows.next().await? {
-        Some(row) => {
-            let id = row.get::<i64>(0)?;
-            let mtime = row.get::<i64>(1)?;
-            Ok(Some((id, mtime)))
-        }
-        None => Ok(None),
-    }
 }
 
 // Implementation of Vector search
@@ -110,10 +61,9 @@ pub async fn vector_search(
         .unwrap_or_else(|error| panic!("Unable to serialize user embedding with error: {error:?}"));
     let sql = format!(
         "
-        SELECT c.content, d.source_path \
+        SELECT c.content \
         FROM vector_top_k('idx_chunks_embedding', vector32(?1), {top_k}) AS v \
-        JOIN chunks AS c on c.rowid = v.id \
-        JOIN documents AS d ON d.id = c.document_id
+        JOIN chunks AS c ON c.rowid = v.id
         "
     );
     let mut rows = conn.query(&sql, params![embedding_json]).await?;

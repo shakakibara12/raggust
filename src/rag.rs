@@ -8,10 +8,10 @@ use std::fmt::Write;
 // Only get the the top 5 vector search results.
 const TOP_K: usize = 5;
 
-const MODEL_NAME: &str = "deepseek-r1:1.5b";
+const LLM_MODEL_NAME: &str = "deepseek-r1:1.5b";
 
 pub struct RagResponse {
-    answer: String,
+    response: String,
 }
 // WHAT WE WANT:
 // 1. Embed the question, like a mad man
@@ -35,13 +35,18 @@ pub async fn query(
         let _ = write!(context, "[{}] {}", i + 1, hit.content);
     }
 
-    let preamble = String::new();
+    let preamble = "You are Duck, the most profound duck there ever is. \
+             You are precise like a needle and knowledgeable like a saint. \
+             Use the provided context to answer accurately. If the \
+             context doesn't contain enough information, You have to answer \
+             honestly, never under no circumstances make up answers. Keep answers concise."
+        .to_string();
 
     let query = format!("preamble: {preamble}\nContext: {context}\n Question: {question}");
-    dbg!(query);
 
     // 4. Return the answer
-    let response = todo!();
+    let response = fetch_llm_output(&query).await.unwrap();
+    Ok(RagResponse { response })
 }
 
 pub async fn fetch_llm_output(prompt: &str) -> Result<String, Box<dyn error::Error>> {
@@ -49,7 +54,7 @@ pub async fn fetch_llm_output(prompt: &str) -> Result<String, Box<dyn error::Err
     let response = client
         .post("http://localhost:11434/api/chat")
         .json(&serde_json::json!({
-            "model": MODEL_NAME,
+            "model": LLM_MODEL_NAME,
             "messages": [
                 {
                   "role": "user",
@@ -78,6 +83,7 @@ mod tests {
     async fn check_ollama_output() {
         let question = "Why is the sky blue?";
         let output = fetch_llm_output(question).await;
+        // dbg!(&output);
         assert!(!output.is_err());
     }
 }
