@@ -7,7 +7,6 @@ pub async fn init_db() -> Result<Connection, Error> {
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS documents (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
             source_path TEXT NOT NULL,
             mtime INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -31,13 +30,12 @@ pub async fn init_db() -> Result<Connection, Error> {
 
 pub async fn insert_document(
     conn: &Connection,
-    title: &str,
     source_path: &str,
     mtime: i64,
 ) -> Result<i64, Error> {
     conn.execute(
-        "INSERT INTO documents (title, mtime) VALUES (?1, ?2)",
-        params![title, source_path, mtime],
+        "INSERT INTO documents (source_path, mtime) VALUES (?1, ?2)",
+        params![source_path, mtime],
     )
     .await?;
 
