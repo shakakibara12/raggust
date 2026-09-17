@@ -39,9 +39,6 @@ async fn main() -> Result<(), E> {
     for content in parse::extract_from_epub(novel) {
         novel_content.push_str(&content);
     }
-    // let novel_contents = parse::extract_from_epub(novel)
-    //     .into_iter()
-    //     .reduce(|acc, x| acc + x);
 
     let chunks = chunk::chunk_text(&novel_content, 200, 50);
     // TODO: Proper embedding of each and every vector of chunks.

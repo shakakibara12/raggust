@@ -1,6 +1,6 @@
-use libsql::{Builder, Connection, errors, params};
+use libsql::{Builder, Connection, errors::Error, params};
 
-pub async fn init_db() -> Result<Connection, errors::Error> {
+pub async fn init_db() -> Result<Connection, Error> {
     // Storing database in the memory for now.
     let db = Builder::new_local(":memory:").build().await?;
     let conn = db.connect()?;
@@ -8,6 +8,7 @@ pub async fn init_db() -> Result<Connection, errors::Error> {
         "CREATE TABLE IF NOT EXISTS documents (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
+            source_path TEXT NOT NULL,
             mtime INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
@@ -31,11 +32,12 @@ pub async fn init_db() -> Result<Connection, errors::Error> {
 pub async fn insert_document(
     conn: &Connection,
     title: &str,
+    source_path: &str,
     mtime: i64,
-) -> Result<i64, errors::Error> {
+) -> Result<i64, Error> {
     conn.execute(
         "INSERT INTO documents (title, mtime) VALUES (?1, ?2)",
-        params![title, mtime],
+        params![title, source_path, mtime],
     )
     .await?;
 
@@ -45,8 +47,8 @@ pub async fn insert_document(
             let id = row.get::<i64>(0)?;
             Ok(id)
         }
-        // TODO: To panic or no panic?
-        None => panic!("failed to get last insert rowid!"),
+        // TODO: To panic or to no panic?
+        None => Err(Error::QueryReturnedNoRows),
     }
 }
 
@@ -56,7 +58,7 @@ pub async fn insert_chunk(
     chunk_index: usize,
     content: &str,
     embedding: &[f32],
-) -> Result<(), errors::Error> {
+) -> Result<(), Error> {
     // Serialize embedding into json for libsql.
     let embedding_json = serde_json::to_string(embedding).unwrap();
     conn.execute(
@@ -67,9 +69,15 @@ pub async fn insert_chunk(
     Ok(())
 }
 
-pub async fn find_document_by_id(conn: &Connection) -> Result<Option<(i64, i64)>, errors::Error> {
+pub async fn find_document_by_id(
+    conn: &Connection,
+    source_path: &str,
+) -> Result<Option<(i64, i64)>, Error> {
     let mut rows = conn
-        .query("SELECT id, mtime FROM documents", params![])
+        .query(
+            "SELECT id, mtime FROM documents WHERE source_path = ?1",
+            params![source_path],
+        )
         .await?;
 
     match rows.next().await? {
@@ -82,7 +90,7 @@ pub async fn find_document_by_id(conn: &Connection) -> Result<Option<(i64, i64)>
     }
 }
 
-pub async fn delete_document(conn: &Connection, doc_id: i64) -> Result<(), errors::Error> {
+pub async fn delete_document(conn: &Connection, doc_id: i64) -> Result<(), Error> {
     conn.execute("DELETE FROM chunks WHERE id = ?1", params![doc_id])
         .await?;
     conn.execute("DELETE FROM chunks WHERE document_id = ?1", params![doc_id])
