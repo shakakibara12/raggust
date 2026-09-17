@@ -58,7 +58,8 @@ pub async fn insert_chunk(
     embedding: &[f32],
 ) -> Result<(), Error> {
     // Serialize embedding into json for libsql.
-    let embedding_json = serde_json::to_string(embedding).unwrap();
+    let embedding_json = serde_json::to_string(embedding)
+        .unwrap_or_else(|error| panic!("Unable to serialize embedding with error: {error:?}"));
     conn.execute(
         "INSERT INTO chunks (document_id, chunk_index, content, embedding) VALUES (?1, ?2, ?3, vector32(?4))",
         params![document_id, i64::try_from(chunk_index).unwrap(), content, embedding_json],
@@ -105,8 +106,8 @@ pub async fn vector_search(
     query_embedding: &[f32],
     top_k: usize,
 ) -> Result<Vec<SearchHit>, Error> {
-    let embedding_json =
-        serde_json::to_string(query_embedding).expect("Unable to serialize user input into json");
+    let embedding_json = serde_json::to_string(query_embedding)
+        .unwrap_or_else(|error| panic!("Unable to serialize user embedding with error: {error:?}"));
     let sql = format!(
         "
         SELECT c.content, d.source_path \
