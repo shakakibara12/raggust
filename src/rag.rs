@@ -1,0 +1,83 @@
+use crate::db;
+use crate::embed;
+use libsql::Connection;
+use reqwest::Client;
+use std::error;
+use std::fmt::Write;
+
+// Only get the the top 5 vector search results.
+const TOP_K: usize = 5;
+
+const MODEL_NAME: &str = "deepseek-r1:1.5b";
+
+pub struct RagResponse {
+    answer: String,
+}
+// WHAT WE WANT:
+// 1. Embed the question, like a mad man
+// 2. Get the top results, like a chad
+// 3. Build context (Get content from the top results for our LLM) + preamble
+// 4. Return the answer
+pub async fn query(
+    conn: &Connection,
+    question: &str,
+) -> Result<RagResponse, Box<dyn error::Error>> {
+    // 1. Embed the question, like a mad man
+    let query_embedding = embed::create_embedding(question).await.unwrap();
+
+    // 2. Get the top results, like a chad
+    let hits = db::vector_search(conn, &query_embedding, TOP_K).await?;
+
+    // 3. Build context (Get content from the top results for our LLM)
+
+    let mut context = String::new();
+    for (i, hit) in hits.into_iter().enumerate() {
+        let _ = write!(context, "[{}] {}", i + 1, hit.content);
+    }
+
+    let preamble = String::new();
+
+    let query = format!("preamble: {preamble}\nContext: {context}\n Question: {question}");
+    dbg!(query);
+
+    // 4. Return the answer
+    let response = todo!();
+}
+
+pub async fn fetch_llm_output(prompt: &str) -> Result<String, Box<dyn error::Error>> {
+    let client = Client::new();
+    let response = client
+        .post("http://localhost:11434/api/chat")
+        .json(&serde_json::json!({
+            "model": MODEL_NAME,
+            "messages": [
+                {
+                  "role": "user",
+                  "content": prompt
+                }
+            ],
+            "stream": false
+        }))
+        .send()
+        .await?
+        .error_for_status()?;
+
+    let body: serde_json::Value = response.json().await?;
+    Ok(body["message"]["content"]
+        .as_str()
+        .unwrap()
+        .trim()
+        .to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn check_ollama_output() {
+        let question = "Why is the sky blue?";
+        let output = fetch_llm_output(question).await;
+        assert!(!output.is_err());
+    }
+}
