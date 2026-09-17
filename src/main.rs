@@ -2,13 +2,16 @@ mod chunk;
 mod db;
 mod embed;
 mod parse;
+mod rag;
 use epub::doc::EpubDoc;
 
 type E = Box<dyn std::error::Error>;
 
+const SOURCE: &str = "corpus/The_Silent_Patient.epub";
+
 #[tokio::main]
 async fn main() -> Result<(), E> {
-    let novel = EpubDoc::new("corpus/The_Silent_Patient.epub")?;
+    let novel = EpubDoc::new(SOURCE)?;
     let the_silent_patient = parse::Novel::open(&novel);
 
     println!("Novel Details:\n{}", the_silent_patient);
