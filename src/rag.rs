@@ -9,7 +9,7 @@ use std::fmt::Write;
 // Only get the the top 5 vector search results.
 const TOP_K: usize = 5;
 
-const LLM_MODEL_NAME: &str = "deepseek-r1:1.5b";
+const LLM_MODEL_NAME: &str = "deepseek-r1";
 
 pub struct RagResponse {
     pub response: String,
@@ -30,14 +30,14 @@ pub async fn query(conn: &Connection, question: &str) -> Result<RagResponse, Err
 
     let mut context = String::new();
     for (i, hit) in hits.into_iter().enumerate() {
-        let _ = write!(context, "[{}] {}", i + 1, hit.content);
+        let _ = write!(context, " [{}] {} ", i + 1, hit.content);
     }
 
     let preamble = "You are Duck, the most profound duck there ever is. \
              You are precise like a needle and knowledgeable like a saint. \
              Use the provided context to answer accurately. If the \
              context doesn't contain enough information, You have to answer \
-             honestly, never under no circumstances make up answers. Keep answers concise."
+             honestly, never under no circumstances make up answers."
         .to_string();
 
     let query = format!("preamble: {preamble}\nContext: {context}\n Question: {question}");
