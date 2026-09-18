@@ -1,0 +1,20 @@
+Raggust:
+
+This is a RAG project, written exclusively in 100% RUST. To assert dominance.
+For this make sure you have a corpus ready, a epub file is required, as I was
+too lazy to add support for any other file type
+
+Setup:
+
+You only need ollama for this shit to work.
+
+Make sure ollama is working
+Pull the embed model:
+`ollama pull nomic-embed-text`
+Pull the LLM model:
+`ollama pull deepseek-r1:1.5b`
+
+Compile and Enjoy. Premium RAG for premium users. You're welcome.
+
+P.S., Make sure you change the `const` inside the main.rs, rag.rs, embed.rs,
+according to your needs.
