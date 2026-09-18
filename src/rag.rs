@@ -1,6 +1,7 @@
 use crate::db;
 use crate::embed;
 use libsql::Connection;
+use libsql::Error;
 use reqwest::Client;
 use std::error;
 use std::fmt::Write;
@@ -11,17 +12,14 @@ const TOP_K: usize = 5;
 const LLM_MODEL_NAME: &str = "deepseek-r1:1.5b";
 
 pub struct RagResponse {
-    response: String,
+    pub response: String,
 }
 // WHAT WE WANT:
 // 1. Embed the question, like a mad man
 // 2. Get the top results, like a chad
 // 3. Build context (Get content from the top results for our LLM) + preamble
 // 4. Return the answer
-pub async fn query(
-    conn: &Connection,
-    question: &str,
-) -> Result<RagResponse, Box<dyn error::Error>> {
+pub async fn query(conn: &Connection, question: &str) -> Result<RagResponse, Error> {
     // 1. Embed the question, like a mad man
     let query_embedding = embed::create_embedding(question).await.unwrap();
 

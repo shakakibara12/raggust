@@ -7,14 +7,14 @@ pub async fn init_db() -> Result<Connection, Error> {
     conn.execute_batch(
         "
         CREATE TABLE IF NOT EXISTS chunks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            chunk_index INTEGER NOT NULL,
-            content TEXT NOT NULL,
-            embedding F32_BLOB(768)
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chunk_index INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        embedding F32_BLOB(768)
         );
 
         CREATE INDEX IF NOT EXISTS idx_chunks_embedding
-            ON chunks(libsql_vector_idx(embedding, 'metric=cosine'));
+        ON chunks(libsql_vector_idx(embedding, 'metric=cosine'));
         ",
     )
     .await?;
@@ -32,7 +32,7 @@ pub async fn insert_chunk(
     let embedding_json = serde_json::to_string(embedding)
         .unwrap_or_else(|error| panic!("Unable to serialize embedding with error: {error:?}"));
     conn.execute(
-        "INSERT INTO chunks (chunk_index, content, embedding) VALUES (?1, ?2, ?3, vector32(?4))",
+        "INSERT INTO chunks (chunk_index, content, embedding) VALUES (?1, ?2, vector32(?3))",
         params![i64::try_from(chunk_index).unwrap(), content, embedding_json],
     )
     .await?;
@@ -45,7 +45,6 @@ pub async fn insert_chunk(
 pub struct SearchHit {
     pub score: f64,
     pub content: String,
-    pub doc_path: String,
 }
 
 // query_embedding: Take the user's input and convert to embeddings to pass it in here.
@@ -73,7 +72,6 @@ pub async fn vector_search(
     let total = u32::try_from(top_k).unwrap_or(u32::MAX);
     while let Some(row) = rows.next().await? {
         let content = row.get::<String>(0)?;
-        let doc_path = row.get::<String>(1)?;
         // We compute score manually because libsql doesn't return a score, it only returns the
         // actual rows containing the top search and then the subsequent rows return the next top
         // search. By doing this, we get scores like 0.8, 0.6, 0.4 ... This is fine for the scope
@@ -82,11 +80,7 @@ pub async fn vector_search(
         // NOTE: As we get down to scores like 0.4, 0.2. The actual content may be questionable.
         let score = 1.0 - f64::from(rank) / f64::from(total);
 
-        results.push(SearchHit {
-            score,
-            content,
-            doc_path,
-        });
+        results.push(SearchHit { score, content });
         rank += 1;
     }
 

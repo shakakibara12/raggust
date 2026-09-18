@@ -1,9 +1,11 @@
 mod chunk;
+mod cli;
 mod db;
 mod embed;
 mod parse;
 mod rag;
 use epub::doc::EpubDoc;
+use std::io::{self, BufRead, Write};
 
 type E = Box<dyn std::error::Error>;
 
@@ -16,26 +18,6 @@ async fn main() -> Result<(), E> {
 
     println!("Novel Details:\n{}", the_silent_patient);
 
-    // We can do two ways here:
-    // First: we take the Vec<String> we got from extract_from_epub and send it directly to the
-    // chunk_text function and change it's parameter accordingly.
-    // -> In this, there will be occurrences where the date inside the vector are just single lines,
-    // which will increase the number of embeddings we get per item.
-    // Second: We merge all the String inside the vector and return the result as a huge String.
-    // -> If we go this path, we leave the entire chunking to the function, pretty straightforward
-    // in my opinion. This seems easy to understand and implement but the resultant string is going
-    // to be really huge not sure how "performant" that will be. At least we are sending a string reference
-    // to the function.
-    // Also If we squash everything at once, we also losing the perfect chapter wise splits we got
-    // from the epub extraction, that the first method will easily take care. In this case, The
-    // first method could yield a better efficiency for embeddings.
-    //
-    // Let's go for the 2nd method, because it's easy to do and let's see after we have everything
-    // implemented we can go for the second method.
-    //
-    // That brings us to how do we squash every string into one. I know as_ref() can give us
-    // reference
-    // &str -> is made up of 2 components, a pointer and a length
     let mut novel_content = String::new();
 
     // TODO: implement with iterators.
@@ -43,10 +25,55 @@ async fn main() -> Result<(), E> {
         novel_content.push_str(&content);
     }
 
-    let chunks = chunk::chunk_text(&novel_content, 200, 50);
-    // TODO: Proper embedding of each and every vector of chunks.
-    // for now we are accessing the first one.
-    let vector_embed = embed::create_embedding(&chunks.first().unwrap().content).await?;
-    dbg!(vector_embed);
+    let chunks = chunk::chunk_text(&novel_content, 2000, 500);
+    let chunk_len = chunks.len();
+    println!("Total number of chunks: {chunk_len}");
+    // Database intialization:
+    let connection = db::init_db().await.expect("Error initializing database");
+    for chunk in chunks {
+        let chunk_content = chunk.content;
+        let chunk_length = chunk_content.len();
+        let index = chunk.index;
+        println!("Embedding chunk {index} with length: {chunk_length}");
+        // Embed chunk
+        let embedding = embed::create_embedding(&chunk_content)
+            .await
+            .expect("Unable to embed chunk");
+        // Insert in database
+        match db::insert_chunk(&connection, index, &chunk_content, &embedding).await {
+            Ok(_) => println!("Successfully inserted chunk"),
+            Err(_) => eprintln!("Failed inserting chunks into database"),
+        };
+    }
+    cli_help();
+    let stdin = io::stdin();
+    let mut stdout = io::stdout();
+    loop {
+        println!("> ");
+        stdout.flush()?;
+        let mut user_input = String::new();
+        let mut handle = stdin.lock();
+        handle.read_line(&mut user_input)?;
+
+        let question = user_input.trim();
+        // Exit
+        if question.is_empty() || question == "exit" || question == "quit" {
+            break;
+        }
+        let result = rag::query(&connection, question).await;
+        match result {
+            Ok(res) => {
+                let response = res.response;
+                println!("\n{response}");
+            }
+            Err(err) => eprintln!("Failed to fetch llm output: {err}"),
+        }
+    }
     Ok(())
+}
+
+fn cli_help() -> String {
+    "Welcome to raggust!\n
+    You can type 'exit' or 'quit' to exit."
+        .to_string()
 }
