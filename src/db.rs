@@ -41,16 +41,11 @@ pub async fn insert_chunk(
 }
 
 // Implementation of Vector search
-
 pub struct SearchHit {
     pub score: f64,
     pub content: String,
 }
 
-// query_embedding: Take the user's input and convert to embeddings to pass it in here.
-// In embed.rs
-// create_embedding(content: &str) -> Result<Vec<f32>, Box<dyn error::Error>>
-// top_k is how many top results we want. E.g., 5 -> would provide 5 top searches.
 pub async fn vector_search(
     conn: &Connection,
     query_embedding: &[f32],

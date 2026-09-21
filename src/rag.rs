@@ -24,7 +24,13 @@ pub async fn query(conn: &Connection, question: &str) -> Result<RagResponse, Err
     // 3. Build context (Get content from the top results for our LLM)
     let mut context = String::new();
     for (i, hit) in hits.into_iter().enumerate() {
-        let _ = write!(context, " [{}] {} ", i + 1, hit.content);
+        let _ = write!(
+            context,
+            " [{}] Rank: [{}] Content: {} ",
+            i + 1,
+            hit.score,
+            hit.content
+        );
     }
 
     let preamble = "You are Duck, the most profound duck there ever is. \
