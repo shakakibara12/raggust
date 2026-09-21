@@ -6,7 +6,7 @@ use reqwest::Client;
 use std::error;
 use std::fmt::Write;
 
-// Only get the the top 5 vector search results.
+// Number of top results to return.
 const TOP_K: usize = 5;
 
 const LLM_MODEL_NAME: &str = "deepseek-r1";
@@ -14,20 +14,14 @@ const LLM_MODEL_NAME: &str = "deepseek-r1";
 pub struct RagResponse {
     pub response: String,
 }
-// WHAT WE WANT:
-// 1. Embed the question, like a mad man
-// 2. Get the top results, like a chad
-// 3. Build context (Get content from the top results for our LLM) + preamble
-// 4. Return the answer
 pub async fn query(conn: &Connection, question: &str) -> Result<RagResponse, Error> {
-    // 1. Embed the question, like a mad man
+    // 1. Embed the question.
     let query_embedding = embed::create_embedding(question).await.unwrap();
 
-    // 2. Get the top results, like a chad
+    // 2. Get the top results.
     let hits = db::vector_search(conn, &query_embedding, TOP_K).await?;
 
     // 3. Build context (Get content from the top results for our LLM)
-
     let mut context = String::new();
     for (i, hit) in hits.into_iter().enumerate() {
         let _ = write!(context, " [{}] {} ", i + 1, hit.content);
