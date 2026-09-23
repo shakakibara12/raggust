@@ -4,7 +4,7 @@
 
 use reqwest::Client;
 use serde::Deserialize;
-use std::error;
+use std::process;
 
 const EMBED_MODEL_NAME: &str = "nomic-embed-text";
 
@@ -21,7 +21,7 @@ struct EmbeddingOutput {
 }
 
 // TODO: Reuse reqwest client across ollama functions
-pub async fn create_embedding(content: &str) -> Result<Vec<f32>, Box<dyn error::Error>> {
+pub async fn create_embedding(content: &str) -> Option<Vec<f32>> {
     let client = Client::new();
     let response = client
         .post("http://localhost:11434/api/embeddings")
@@ -30,14 +30,25 @@ pub async fn create_embedding(content: &str) -> Result<Vec<f32>, Box<dyn error::
             "prompt": content
         }))
         .send()
-        .await?
-        .error_for_status()?;
+        .await
+        .unwrap_or_else(|e| {
+            eprintln!("Failed to request ollama with error: {e}, is ollama installed and running (ollama serve)?");
+                process::exit(1);
+        }).error_for_status();
 
-    // This deserializes the json output to EmbeddingOutput.
-    // now by default, we get embeds as f64 but libsql only supports f32
-    // serde automatically handles the conversion to f64 -> f32 as well. Neat.
-    let body: EmbeddingOutput = response.json().await?;
-    Ok(body.embedding)
+    match response {
+        Ok(res) => {
+            // This deserializes the json output to EmbeddingOutput.
+            // now by default, we get embeds as f64 but libsql only supports f32
+            // serde automatically handles the conversion to f64 -> f32 as well. Neat.
+            let body: EmbeddingOutput = res
+                .json()
+                .await
+                .expect("Failed to deserialize embedding json response");
+            Some(body.embedding)
+        }
+        Err(_) => None,
+    }
 }
 
 #[cfg(test)]
@@ -49,6 +60,6 @@ mod tests {
         let data = "こんにちわ、世界";
         let result = create_embedding(data).await;
 
-        assert!(!result.is_err());
+        assert!(!result.is_none());
     }
 }

@@ -34,6 +34,8 @@ async fn main() -> Result<(), E> {
 
     // Database intialization:
     let connection = db::init_db().await.expect("Error initializing database");
+    println!("Successfully initialized database");
+
     for (i, chunk) in chunks.into_iter().enumerate() {
         let chunk_content = chunk.content;
         let index = chunk.index;
